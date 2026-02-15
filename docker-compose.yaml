@@ -1,0 +1,32 @@
+version: "2"
+
+services:
+  php-apache:
+    build:
+      context: .
+      dockerfile: .docker/php-apache/Dockerfile
+    volumes:
+      - .:/var/www/html
+    networks:
+      - laravel
+    ports:
+      - "80:80"
+
+  mysql:
+    image: mysql:5.7
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+    volumes:
+      - ./.docker/mysql/data:/var/lib/mysql
+    networks:
+      - laravel
+    ports:
+      - "3306:3306"
+    env_file:
+      - .env
+
+networks:
+  laravel:
