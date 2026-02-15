@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="1">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,400italic,600italic|Roboto+Slab:400,700"
+          rel="stylesheet">
+    <!-- Keeping Bootstrap linked as per your request, but overriding styles with custom CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+
+    <title>Simple chat with Groq</title>
+    <style>
+        /* --- Global Reset & Typography --- */
+        :root {
+            --primary-color: #4f46e5; /* Indigo */
+            --primary-hover: #4338ca;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --input-bg: #f9fafb;
+            --danger-bg: #fee2e2;
+            --danger-text: #991b1b;
+            --danger-border: #fca5a5;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* --- Main Container --- */
+        .container {
+            background-color: var(--card-bg);
+            width: 100%;
+            max-width: 650px; /* Slightly wider for better UX */
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem; /* Space between children */
+            border: 1px solid var(--border-color);
+            margin: 0;
+        }
+
+        /* --- Typography & Labels --- */
+        label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* --- Inputs & Textareas --- */
+        input, textarea {
+            width: 100%; /* Force full width responsive */
+            max-width: 100%;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: inherit;
+            font-size: 1rem;
+            color: var(--text-main);
+            transition: all 0.2s ease-in-out;
+            box-sizing: border-box; /* Ensures padding doesn't expand width */
+            outline: none;
+            resize: vertical; /* Allow vertical resize only */
+        }
+
+        input:focus, textarea:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            background-color: #fff;
+        }
+
+        /* Specific styling for the AI Answer area to make it distinct */
+        #answers-textarea-id {
+            font-family: 'Roboto Slab', serif; /* Document feel for AI output */
+            background-color: #fff;
+            border: 1px solid var(--border-color);
+            min-height: 200px;
+            line-height: 1.6;
+            color: #333;
+            border-left: 4px solid var(--primary-color); /* Accent line */
+        }
+
+        #questions-textarea-id {
+            min-height: 120px;
+        }
+
+        /* --- Button --- */
+        button#send-button-id {
+            height: 48px;
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button#send-button-id:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button#send-button-id:active {
+            transform: scale(0.98);
+        }
+
+        /* --- Notifications --- */
+        #notification {
+            display: none; /* Hidden by default */
+            width: 100%;
+        }
+
+        .notification-error {
+            display: flex !important; /* Override inline styles from JS if needed */
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: var(--danger-bg);
+            color: var(--danger-text);
+            border: 1px solid var(--danger-border);
+            font-size: 0.95rem;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .notification-error i {
+            margin-right: 10px;
+        }
+
+        /* --- Animations --- */
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Mobile Tweaks --- */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+                align-items: flex-start;
+            }
+            .container {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Notification Area -->
+    <div id="notification"></div>
+
+    <!-- Configuration Grid could go here, but keeping stack per your HTML -->
+
+    <div>
+        <label for="model-input-id"><i class="fas fa-robot"></i> Enter Model</label>
+        <input type="text" name="ai_model" id="model-input-id" value="{{$aiModelDefault}}" placeholder="e.g. llama3-8b-8192">
+    </div>
+
+    <div>
+        <label for="role-input-id"><i class="fas fa-user-tag"></i> Enter Role</label>
+        <input type="text" name="ai_role" id="role-input-id" placeholder="e.g. Helpful Assistant">
+    </div>
+
+    <div>
+        <label for="answers-textarea-id"><i class="fas fa-comment-alt"></i> AI Response</label>
+        <textarea id="answers-textarea-id" readonly placeholder="The AI's answer will appear here..."></textarea>
+    </div>
+
+    <div>
+        <label for="questions-textarea-id"><i class="fas fa-pencil-alt"></i> Your Question</label>
+        <textarea id="questions-textarea-id" placeholder="Type your message here..."></textarea>
+    </div>
+
+    <button id="send-button-id">
+        Send <i class="fas fa-paper-plane"></i>
+    </button>
+</div>
+
+</body>
+<!-- Scripts remain exactly as you provided -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script>
+    let getCookie = function getCookie(name) {
+        let matches = document.cookie.match(new RegExp(
+            "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+        ));
+        let result = matches ? decodeURIComponent(matches[1]) : undefined;
+        return result;
+    };
+
+    $('#send-button-id').on('click', function () {
+        const formData = new FormData();
+        formData.append('ai_model', $('#model-input-id').val());
+        formData.append('ai_role', $('#role-input-id').val());
+        formData.append('user_message', $('#questions-textarea-id').val());
+
+        // Optional: visual feedback that button is clicked
+        const originalText = $(this).html();
+        $(this).html('<i class="fas fa-spinner fa-spin"></i> Sending...').prop('disabled', true);
+
+        $.ajax({
+            headers: {
+                'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
+                //'Accept': 'application/json'
+            },
+            url: '{{route('chat.handle-request')}}',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+                $('#answers-textarea-id').text(data.data.answer);
+                // Reset button
+                $('#send-button-id').html(originalText).prop('disabled', false);
+            },
+            error: function (xhr, status, errorThrown) {
+                var errorMessage = xhr.responseJSON.message;
+                $('#notification')
+                    .addClass('notification-error')
+                    .html('<i class="fas fa-exclamation-circle"></i> ' + errorMessage) // Added icon support
+                    .fadeIn(300)
+                    .delay(6000) // Wait before fade out
+                    .fadeOut(600); // Fade out speed
+
+                // Reset button
+                $('#send-button-id').html(originalText).prop('disabled', false);
+            }
+        });
+    });
+</script>
+</html>
