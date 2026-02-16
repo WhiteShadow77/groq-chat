@@ -125,7 +125,7 @@
         }
 
         /* --- NOTIFICATION --- */
-        .notification {
+        #notification {
             padding: 10px;
             background-color: #fee2e2;
             color: #991b1b;
@@ -140,7 +140,7 @@
 
 <div class="container">
     <!-- Notification -->
-    <div id="notification" class="notification"></div>
+    <div id="notification"></div>
 
     <!-- Model -->
     <div class="input-group">
@@ -150,7 +150,7 @@
 
     <!-- Role -->
     <div class="input-group">
-        <label for="role-input-id">Enter role:</label>
+        <label for="role-input-id">Enter role content:</label>
         <input type="text" name="ai_role" id="role-input-id">
     </div>
 
@@ -188,7 +188,7 @@
         $.ajax({
             headers: {
                 'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
-                //'Accept': 'application/json'
+                'Accept': 'application/json'
             },
             url: '{{route('chat.handle-request')}}',
             type: 'POST',
@@ -198,12 +198,31 @@
             success: function (data) {
                 $('#answers-textarea-id').text(data.data.answer);
             },
-            error: function (xhr, status, errorThrown) {
-                var errorMessage = xhr.responseJSON.message;
-                $('#notification')
-                    .addClass('notification-error')
-                    .text(errorMessage)
-                    .fadeOut(6000);
+            error: function(xhr) {
+                // 1. Check if a JSON response exists
+                if (xhr.responseJSON) {
+
+                    var response = xhr.responseJSON;
+                    console.log("Status:", response.status);       // false
+                    console.log("Message:", response.message);     // 'Error occurred'
+
+                    if (response.data && response.data.message) {
+                        console.error("Exception:", response.data.message);
+                        $('#notification')
+                            .addClass('notification-error')
+                            .text("Error: " + response.data.message)
+                            .show()
+                            .fadeOut(20000);
+                    }
+                } else {
+                    // Handle non-JSON errors (like 500 Internal Server Error without JSON body)
+                    console.error("Server Error:", xhr.statusText);
+                    $('#notification')
+                        .addClass('notification-error')
+                        .text("An unexpected error occurred.")
+                        .show()
+                        .fadeOut(20000);
+                }
             }
         });
     });

@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class GroqService
 {
@@ -11,13 +13,13 @@ class GroqService
 
     public function __construct()
     {
-        $this->apiKey = config('ai.api_key');
+        $this->apiKey = config('ai.groq_api_key');
     }
 
     /**
      * Send a prompt to the AI and return the text response.
      */
-    public function chat(string $aiModel, string $aiRole, string $userMessage): string
+    public function chat(string $aiModel, string $aiRole, string $userMessage): JsonResponse
     {
         $response = Http::withToken($this->apiKey)
             ->accept('application/json')
@@ -29,13 +31,30 @@ class GroqService
                 ],
             ]);
 
-        //dd($response->json(), $response->body(), $response);
-
         if ($response->failed()) {
-            //$errorMessage = $response->json()['error']['message'];
-            //dd($response->json(), $response->body(), $response);
-            throw new \Exception($response->json()['error']['message'],409);
+            $httpCode = $response->status();
+
+            // If code is 0 or not a valid HTTP error code, default to 400 (Bad Request)
+            if ($httpCode < 400 || $httpCode > 599) {
+                $httpCode = 400;
+            }
+
+            return response()->json([
+                'status' => false,
+                'message' => 'Error occurred',
+                'data' => [
+                    'message' => $response->json()['error']['message']
+                ]
+            ], $httpCode);
+
         }
-        return $response->json('choices.0.message.content');
+        return response()->json([
+            'status' => true,
+            'message' => 'Answer from AI',
+            'data' => [
+                'answer' => $response->json('choices.0.message.content')
+            ]
+        ]);
+
     }
 }

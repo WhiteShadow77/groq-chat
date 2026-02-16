@@ -1,5 +1,5 @@
 <?php
 return [
-    'modelDefault' => env('AI_MODEL_DEFAULT', 'openai/gpt-oss-safeguard-20b'),
-    'api_key' => env('AI_API_KEY', ''),
+    'groq_default_model' => env('GROQ_MODEL', 'openai/gpt-oss-safeguard-20b'),
+    'groq_api_key' => env('GROQ_API_KEY', ''),
 ];
